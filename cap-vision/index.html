@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>瓶盖视觉检测 · 相机与镜头选型计算器</title>
+<style>
+  :root { color-scheme: dark; }
+  body { margin:0; background:#0b0d12; color:#e8ecf5; font-family:"Segoe UI","Microsoft YaHei",sans-serif; }
+  .wrap { max-width:1080px; margin:0 auto; padding:28px 20px 60px; }
+  h1 { font-size:24px; margin:0 0 4px; color:#8fd3ff; }
+  .sub { color:#7d879c; font-size:13px; margin-bottom:22px; }
+  .grid { display:grid; grid-template-columns: 1fr 1fr; gap:18px; }
+  .card { background:#141824; border:1px solid #232a3b; border-radius:14px; padding:18px; }
+  .card h2 { font-size:15px; margin:0 0 14px; color:#c7d3ea; letter-spacing:.5px; }
+  label { display:block; font-size:13px; color:#9aa6bf; margin:12px 0 6px; }
+  input, select { width:100%; padding:9px 10px; border-radius:8px; border:1px solid #2b3448; background:#0e121b; color:#e8ecf5; font-size:14px; box-sizing:border-box; }
+  .row { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .out { font-size:14px; line-height:1.9; }
+  .out b { color:#8fd3ff; }
+  .big { font-size:22px; color:#ffd166; font-weight:700; }
+  .tag { display:inline-block; padding:2px 8px; border-radius:99px; font-size:12px; margin-left:6px; }
+  .ok { background:#12351f; color:#6fe39a; }
+  .no { background:#3a1518; color:#ff8a8a; }
+  .note { color:#7d879c; font-size:12px; line-height:1.7; margin-top:10px; }
+  table { width:100%; border-collapse:collapse; font-size:13px; margin-top:8px; }
+  th, td { border-bottom:1px solid #232a3b; padding:7px 6px; text-align:left; }
+  th { color:#9aa6bf; font-weight:500; }
+  .formula { font-family:Consolas,monospace; font-size:12px; color:#9aa6bf; background:#0e121b; padding:10px; border-radius:8px; margin-top:10px; }
+  @media (max-width: 820px) { .grid { grid-template-columns:1fr; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>瓶盖视觉检测 · 相机与镜头选型计算器</h1>
+  <div class="sub">输入瓶盖尺寸与 0.1% 的含义，实时算出所需的像素尺寸、分辨率、镜头焦距与景深。</div>
+
+  <div class="grid">
+    <div class="card">
+      <h2>输入</h2>
+      <div class="row">
+        <div>
+          <label>瓶盖直径 / 测量尺寸 (mm)</label>
+          <input id="d" type="number" value="28" step="0.1" />
+        </div>
+        <div>
+          <label>视野余量 (mm / 单边)</label>
+          <input id="margin" type="number" value="4" step="0.5" />
+        </div>
+      </div>
+
+      <label>0.1% 指什么？</label>
+      <select id="mode">
+        <option value="area">面积损耗：缺陷面积占瓶盖表面积的 0.1%</option>
+        <option value="dim">尺寸公差：0.1% × 测量尺寸（如 28mm 的 0.1% = 0.028mm）</option>
+      </select>
+
+      <div class="row">
+        <div>
+          <label>最小缺陷成像像素 (px)</label>
+          <input id="minpx" type="number" value="5" step="1" />
+        </div>
+        <div>
+          <label>工作距离 WD (mm)</label>
+          <input id="wd" type="number" value="150" step="10" />
+        </div>
+      </div>
+
+      <label>相机传感器</label>
+      <select id="sensor">
+        <option value="7.1,5.3,5">1/1.8" 5MP (7.1×5.3mm)</option>
+        <option value="8.45,7.07,5" selected>2/3" 5MP (8.45×7.07mm)</option>
+        <option value="11.1,8.3,12">1" 12MP (11.1×8.3mm，3.45µm)</option>
+        <option value="13.1,8.8,12">1.1" 12MP (13.1×8.8mm)</option>
+        <option value="14.1,10.4,20">1.1" 20MP (14.1×10.4mm)</option>
+        <option value="23.5,15.6,24">APS-C 24MP (23.5×15.6mm)</option>
+      </select>
+
+      <div class="row">
+        <div>
+          <label>光圈 F</label>
+          <input id="fno" type="number" value="5.6" step="0.1" />
+        </div>
+        <div>
+          <label>亚像素精度 (px，1=不用)</label>
+          <input id="subpix" type="number" value="1" step="0.1" />
+        </div>
+      </div>
+
+      <div class="note">提示：0.1% 面积损耗和 0.1% 尺寸公差是两种完全不同的需求，后者对分辨率的要求高一个数量级。</div>
+    </div>
+
+    <div class="card">
+      <h2>结果</h2>
+      <div class="out" id="out"></div>
+      <div id="verdict"></div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:18px;">
+    <h2>计算依据</h2>
+    <div id="formulas" class="formula"></div>
+    <div class="note" id="advice"></div>
+  </div>
+</div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const sensors = {};
+
+function calc() {
+  const d = Number($('d').value);
+  const margin = Number($('margin').value);
+  const mode = $('mode').value;
+  const minpx = Number($('minpx').value);
+  const wd = Number($('wd').value);
+  const fno = Number($('fno').value);
+  const subpix = Math.max(0.1, Number($('subpix').value));
+  const [sw, sh, mp] = $('sensor').value.split(',').map(Number);
+
+  const fov = d + 2 * margin;
+  let defect, label;
+  if (mode === 'area') {
+    const area = Math.PI * Math.pow(d / 2, 2);
+    const defectArea = area * 0.001;
+    defect = 2 * Math.sqrt(defectArea / Math.PI);
+    label = '0.1% 面积对应的等效圆直径';
+  } else {
+    defect = d * 0.001;
+    label = '0.1% 尺寸公差';
+  }
+
+  const pixelNeeded = defect / minpx / subpix;      // mm/px
+  const pxH = Math.ceil(fov / pixelNeeded);
+  const pxV = Math.ceil(pxH * 0.75);
+  const neededMP = (pxH * pxV) / 1e6;
+
+  const f = wd * (sw / fov) / (1 + sw / fov);        // thin lens
+  const m = sw / fov;
+  const pxW = Math.sqrt(mp * 1e6 * 4 / 3);
+  const pitch = sw / pxW;                             // actual sensor pixel pitch (mm)
+  const c = 2 * pitch;
+  const dof = 2 * fno * c * (1 + m) / (m * m);
+
+  const cameraMP = pxH * pxV / 1e6;
+  let cameraClass;
+  if (cameraMP <= 2) cameraClass = '200 万像素级（如 1920×1080）';
+  else if (cameraMP <= 6) cameraClass = '500 万像素级（如 2448×2048）';
+  else if (cameraMP <= 15) cameraClass = '1200 万像素级（如 4000×3000）';
+  else if (cameraMP <= 30) cameraClass = '2000–3000 万像素级（如 5472×3648）';
+  else cameraClass = '3000 万像素以上（需大幅面 / 多相机拼接）';
+
+  const selectedMP = sw * sh * 1e6 / (3.45 * 3.45); // rough not used
+  const sensorOk = mp >= Math.ceil(cameraMP * 1.15);
+
+  $('out').innerHTML = [
+    label + '：<b>' + defect.toFixed(3) + ' mm</b>',
+    '所需像素尺寸：<b>' + (pixelNeeded * 1000).toFixed(1) + ' µm/px</b>',
+    '视野 FOV：<b>' + fov.toFixed(1) + ' × ' + (fov * 0.75).toFixed(1) + ' mm</b>',
+    '所需水平像素：<b>' + pxH + ' px</b>（约 ' + (cameraMP < 0.1 ? cameraMP.toFixed(3) : cameraMP.toFixed(1)) + ' MP）',
+    '建议相机：<b>' + cameraClass + '</b>',
+    '镜头焦距（WD ' + wd + 'mm）：<b>' + f.toFixed(1) + ' mm</b> ≈ 选 ' + (f < 18 ? '16' : f < 30 ? '25' : f < 45 ? '35' : '50') + ' mm',
+    '放大倍率：<b>' + m.toFixed(3) + '×</b>',
+    '估算景深：<b>' + dof.toFixed(2) + ' mm</b>（F' + fno + '）'
+  ].join('<br>');
+
+  $('verdict').innerHTML = sensorOk
+    ? '<p style="margin-top:14px;">当前所选传感器：<span class="tag ok">分辨率足够</span>（' + mp + 'MP ≥ 需求）</p>'
+    : '<p style="margin-top:14px;">当前所选传感器：<span class="tag no">不够</span> 需要至少 ' + Math.ceil(cameraMP * 1.15) + 'MP 或缩小视野</p>';
+
+  $('formulas').innerHTML =
+    '面积：A = π·(d/2)²；缺陷等效直径 = 2·√(A·0.1%/π)<br>' +
+    '像素尺寸 = 缺陷尺寸 ÷ 最小成像像素 ÷ 亚像素系数<br>' +
+    'FOV = d + 2·余量；水平像素 = FOV ÷ 像素尺寸<br>' +
+    '焦距 f = WD·m/(1+m)，m = 传感器宽度 / FOV<br>' +
+    '景深 ≈ 2·F·c·(1+m)/m²，c 取 2 倍像素尺寸';
+
+  $('advice').innerHTML =
+    '为什么：面积 0.1% 时，缺陷等效直径约 0.9mm，500 万像素相机配 25mm 镜头就有 20+ 像素，分辨率绰绰有余，难点在光照与重复性；' +
+    '尺寸 0.1% 时，28mm 的 0.1% 只有 28µm，需要 10µm 级像素或 0.2× 双远心镜头 + 平行背光，普通手机/网络摄像头做不到。';
+}
+
+for (const id of ['d','margin','mode','minpx','wd','sensor','fno','subpix']) {
+  $(id).addEventListener('input', calc);
+  $(id).addEventListener('change', calc);
+}
+calc();
+</script>
+</body>
+</html>

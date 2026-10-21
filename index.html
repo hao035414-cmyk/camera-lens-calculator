@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>工业视觉选型工具</title>
+<style>
+  :root { color-scheme: dark; }
+  body { margin:0; min-height:100vh; display:grid; place-items:center; background:radial-gradient(circle at 50% 20%, #12203a 0%, #080b12 60%, #05070c 100%); color:#e8edf7; font-family:"Segoe UI","Microsoft YaHei",sans-serif; }
+  .wrap { width:min(900px, 92vw); padding:40px 0; }
+  h1 { font-size:30px; margin:0 0 8px; color:#7fd4ff; letter-spacing:1px; }
+  .sub { color:#7d879c; font-size:14px; margin-bottom:34px; line-height:1.8; }
+  .cards { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
+  a.card { display:block; padding:26px; border-radius:16px; background:#111725; border:1px solid #26304a; text-decoration:none; color:inherit; transition:.15s; }
+  a.card:hover { border-color:#7fd4ff; transform:translateY(-2px); box-shadow:0 12px 30px rgba(0,0,0,.45); }
+  .tag { font-size:12px; color:#7fd4ff; letter-spacing:1px; }
+  h2 { font-size:19px; margin:8px 0 10px; color:#e8edf7; }
+  p { color:#8b97b0; font-size:13px; line-height:1.8; margin:0; }
+  .foot { margin-top:30px; color:#5f6a82; font-size:12px; }
+  @media (max-width: 760px) { .cards { grid-template-columns:1fr; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>工业视觉选型工具</h1>
+  <div class="sub">两个纯前端计算器，输入尺寸与精度，直接给出相机分辨率、镜头焦距和景深。无需安装，打开即用。</div>
+  <div class="cards">
+    <a class="card" href="./fov-precision/">
+      <div class="tag">通用</div>
+      <h2>视野 + 精度 → 相机 / 镜头</h2>
+      <p>输入最大视野（mm）与精度要求（mm），计算所需像素尺寸、相机分辨率、镜头焦距、景深，并判断所选相机是否满足。每个参数都带说明。</p>
+    </a>
+    <a class="card" href="./cap-vision/">
+      <div class="tag">瓶盖检测</div>
+      <h2>瓶盖磨损 0.1% 选型</h2>
+      <p>针对瓶盖表面磨损/划痕检测，按“面积 0.1%”或“尺寸 0.1%”两种口径，给出相机、镜头与光源建议。</p>
+    </a>
+  </div>
+  <div class="foot">纯静态页面 · 无依赖 · 数据不上传</div>
+</div>
+</body>
+</html>

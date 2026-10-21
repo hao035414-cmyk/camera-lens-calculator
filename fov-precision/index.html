@@ -1,0 +1,250 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>视觉选型：视野 + 精度 → 相机 / 镜头（含参数说明）</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:#0a0d13; color:#e8edf7; font-family:"Segoe UI","Microsoft YaHei",sans-serif; }
+  .wrap { max-width:1180px; margin:0 auto; padding:30px 20px 70px; }
+  h1 { font-size:24px; margin:0 0 6px; color:#7fd4ff; letter-spacing:.5px; }
+  .sub { color:#7d879c; font-size:13px; margin-bottom:24px; line-height:1.7; }
+  .grid { display:grid; grid-template-columns: 400px 1fr; gap:18px; align-items:start; }
+  .card { background:#131826; border:1px solid #232a3b; border-radius:14px; padding:20px; }
+  .card h2 { font-size:14px; margin:0 0 16px; color:#b9c6e0; letter-spacing:1px; }
+  .field { margin-bottom:18px; }
+  label { display:block; font-size:13px; color:#a9b5cc; margin-bottom:6px; font-weight:600; }
+  input, select { width:100%; padding:10px 11px; border-radius:9px; border:1px solid #2b3448; background:#0d111a; color:#e8edf7; font-size:14px; }
+  .desc { color:#6f7a93; font-size:11.5px; line-height:1.65; margin-top:5px; }
+  .out { font-size:14px; line-height:1.6; }
+  .item { padding:9px 0; border-bottom:1px dashed #1d2434; }
+  .item:last-child { border-bottom:none; }
+  .item .k { color:#93a0ba; font-size:12.5px; }
+  .item .v { color:#7fd4ff; font-weight:700; font-size:16px; }
+  .item .big { font-size:24px; color:#ffd166; }
+  .item .why { color:#6f7a93; font-size:11.5px; line-height:1.6; margin-top:3px; }
+  .tag { display:inline-block; padding:2px 9px; border-radius:99px; font-size:12px; margin-left:6px; }
+  .ok { background:#12351f; color:#6fe39a; }
+  .no { background:#3a1518; color:#ff8a8a; }
+  table { width:100%; border-collapse:collapse; font-size:13px; margin-top:10px; }
+  th, td { padding:8px 7px; border-bottom:1px solid #232a3b; text-align:left; vertical-align:top; line-height:1.6; }
+  th { color:#93a0ba; font-weight:500; white-space:nowrap; }
+  td.p { color:#7fd4ff; font-weight:600; white-space:nowrap; }
+  .formula { font-family:Consolas,monospace; font-size:12px; line-height:1.9; color:#93a0ba; background:#0d111a; padding:12px; border-radius:9px; margin-top:12px; }
+  .note { color:#7d879c; font-size:12px; line-height:1.8; margin-top:12px; }
+  .badge { font-size:11px; color:#0a0d13; background:#7fd4ff; padding:1px 6px; border-radius:4px; margin-left:6px; }
+  @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>视觉选型：视野 + 精度 → 相机 / 镜头</h1>
+  <div class="sub">输入最大视野与精度，反推像素尺寸、相机分辨率、镜头焦距和景深。每个参数下方都写了含义和取值建议，页面底部有完整参数表。</div>
+
+  <div class="grid">
+    <div class="card">
+      <h2>输入参数</h2>
+
+      <div class="field">
+        <label>最大视野 FOV（mm）</label>
+        <input id="fov" type="number" value="50" step="1" />
+        <div class="desc">相机一次拍摄要覆盖的物方最大宽度（不是镜头视场角）。圆形视野填直径。<br>FOV 越大，同样精度需要的像素越多，而且大致按平方增长——所以“能拍全”和“看得清”是一对矛盾。</div>
+      </div>
+
+      <div class="field">
+        <label>精度要求 Prec（mm）</label>
+        <input id="prec" type="number" value="0.05" step="0.001" />
+        <div class="desc">系统需要分辨的最小尺寸差或位置差，例如允许 ±0.05mm 的测量误差就填 0.05。<br>注意：这是“测量不确定度”，不是你重复拍十次的最大偏差。</div>
+      </div>
+
+      <div class="field">
+        <label>每精度单位像素数 N</label>
+        <select id="n">
+          <option value="2">2 px · 检测有无 / 粗略定位</option>
+          <option value="3">3 px · 一般检测</option>
+          <option value="5" selected>5 px · 尺寸测量（常用）</option>
+          <option value="8">8 px · 精密测量</option>
+          <option value="10">10 px · 高精度，接近极限</option>
+        </select>
+        <div class="desc">一个“精度单位”在图像上要占几个像素。N 越大越稳、成本越高；稳定亚像素算法可以降一档，普通阈值分割建议 ≥5。<br>它直接决定所需像素尺寸：像素尺寸 = 精度 ÷ N。</div>
+      </div>
+
+      <div class="field">
+        <label>工作距离 WD（mm）</label>
+        <input id="wd" type="number" value="150" step="10" />
+        <div class="desc">镜头前端到被测物的距离。它不改变所需分辨率，但决定焦距和景深：WD 越远，同样视野需要更长焦距；WD 太近则打光困难、畸变变大。</div>
+      </div>
+
+      <div class="field">
+        <label>相机传感器</label>
+        <select id="sensor">
+          <option value="7.1,5.3,1600,1200">1/1.8" 2MP（1600×1200）</option>
+          <option value="8.45,7.07,2448,2048" selected>2/3" 5MP（2448×2048）</option>
+          <option value="12.8,9.6,4112,3008">1" 12MP（4112×3008）</option>
+          <option value="14.1,10.4,4112,3008">1.1" 12MP（4112×3008）</option>
+          <option value="14.1,10.4,5472,3648">1.1" 20MP（5472×3648）</option>
+          <option value="23.5,15.6,6000,4000">APS-C 24MP（6000×4000）</option>
+        </select>
+        <div class="desc">靶面尺寸决定放大倍率和能配的镜头；像素数决定物方分辨率。<br>同一视野下，靶面越大越容易配镜头，但镜头也更贵；像素越多，单个像元通常越小，弱光噪声会更明显。</div>
+      </div>
+
+      <div class="field">
+        <label>光圈 F</label>
+        <input id="fno" type="number" value="5.6" step="0.1" />
+        <div class="desc">镜头通光孔径。F 值越大（如 F8）景深越深、边缘更锐，但进光少、需要更强光源；F 值越小越亮，景深越浅，工件稍有高低差就会虚焦。</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>计算结果</h2>
+      <div class="out" id="out"></div>
+      <div id="verdict" style="margin-top:10px;"></div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:18px;">
+    <h2>推荐档位</h2>
+    <div id="recommend"></div>
+  </div>
+
+  <div class="card" style="margin-top:18px;">
+    <h2>水平像素越高会怎样？</h2>
+    <table>
+      <tr><th>收益</th><th>代价</th></tr>
+      <tr>
+        <td>物方像元更小，能分辨更小的缺陷；同样视野下精度更高。</td>
+        <td>相机更贵，镜头也要跟上（高 MTF、大靶面），整体成本上升。</td>
+      </tr>
+      <tr>
+        <td>可以覆盖更大视野而不牺牲精度；也可以裁切局部当“数码变焦”。</td>
+        <td>帧率下降、带宽吃紧：20MP@30fps 约 600MB/s，USB3 跑不满，需要 10GigE / CoaXPress。</td>
+      </tr>
+      <tr>
+        <td>亚像素边缘、缺陷面积统计更稳，抗混叠更好。</td>
+        <td>像元变小进光量下降，弱光噪声变大；曝光时间或增益要增加。</td>
+      </tr>
+      <tr>
+        <td>同一台相机可以用 ROI 提高帧率，兼顾大视野和高速。</td>
+        <td>受衍射限制：F5.6 时像元小于约 3.5µm 基本不再增加真实信息；镜头解析力不够也会白搭。</td>
+      </tr>
+      <tr>
+        <td>测量重复性上限更高。</td>
+        <td>景深变浅、对工装刚性和热稳定性要求更高；图像处理 CPU/存储压力更大。</td>
+      </tr>
+    </table>
+    <div class="note">
+      一句话：水平像素不是越高越好，而是“够用 + 留 20% 余量”。先按精度算出最低像素，再检查镜头解析力、接口带宽、景深和光源能不能支撑，否则多出来的像素只是更大的噪声图。
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:18px;">
+    <h2>参数说明表</h2>
+    <table>
+      <tr><th>参数</th><th>含义</th><th>怎么理解 / 怎么选</th></tr>
+      <tr><td class="p">FOV 视野</td><td>相机能拍到的物方宽度（mm）。</td><td>要覆盖整个瓶盖就填瓶盖直径 + 余量；只测局部就填局部尺寸。FOV 翻倍，像素需求约翻四倍。</td></tr>
+      <tr><td class="p">Prec 精度</td><td>要求分辨的最小尺寸差（mm）。</td><td>填“允许的测量误差”，不是相机分辨率。精度要求越严，像素尺寸必须越小。</td></tr>
+      <tr><td class="p">N 像素数</td><td>每个精度单位占多少像素。</td><td>检测 2–3，测量 5，精密 8–10；亚像素稳定时可降一档。N 是可靠性与成本的折中。</td></tr>
+      <tr><td class="p">像素尺寸</td><td>一个像素对应物体上多大尺寸（µm/px）。</td><td>= 精度 ÷ N。这是选相机最核心的数字，比“多少万像素”更本质。</td></tr>
+      <tr><td class="p">水平像素</td><td>覆盖 FOV 需要的横向像素数。</td><td>= FOV ÷ 像素尺寸。它决定相机分辨率和镜头能否分辨。</td></tr>
+      <tr><td class="p">所需 MP</td><td>水平像素 × 垂直像素。</td><td>用来快速判断相机档位：≤2MP、5MP、12MP、20MP、30MP+。</td></tr>
+      <tr><td class="p">放大倍率 m</td><td>传感器宽度 ÷ FOV。</td><td>m 越大，同样视野用的靶面越小；m 太小则镜头难配、边缘畸变明显。</td></tr>
+      <tr><td class="p">镜头焦距 f</td><td>由 WD 与 m 反算的焦距（mm）。</td><td>选最接近的标准焦距（8/12/16/25/35/50），用工作距离或接圈微调。</td></tr>
+      <tr><td class="p">景深 DOF</td><td>物体前后仍清晰的范围（mm）。</td><td>要大于工件高度波动；不够就收小光圈、缩短 WD 或换远心镜头。</td></tr>
+      <tr><td class="p">物方像元</td><td>所选相机在当前 FOV 下的实际像素尺寸。</td><td>= FOV ÷ 传感器水平像素。它决定“这台相机实际能做到多少精度”。</td></tr>
+      <tr><td class="p">实际精度</td><td>物方像元 × N。</td><td>只有 ≤ 精度要求才算满足。工具会据此标“满足/不满足”。</td></tr>
+      <tr><td class="p">工作距离 WD</td><td>镜头到物体的距离。</td><td>影响焦距、景深、打光空间；WD 越大，焦距越长，视野越难做大。</td></tr>
+      <tr><td class="p">光圈 F</td><td>通光孔径大小。</td><td>F 大景深深但暗；F 小亮但景深浅。测量场景常用 F4–F8。</td></tr>
+    </table>
+    <div class="formula">
+像素尺寸 = 精度 ÷ N　|　水平像素 = FOV ÷ 像素尺寸　|　总像素 ≈ 水平 × 垂直（4:3）<br>
+m = 传感器宽度 ÷ FOV　|　f ≈ WD × m ÷ (1+m)　|　DOF ≈ 2 × F × c × (1+m) ÷ m²（c 取 2 倍像元）
+    </div>
+    <div class="note">
+      经验：所需像素超过 3000 万时，先别堆相机——缩小测量区域、多相机拼接、改线扫或上远心，通常更划算。
+      精度低于 20µm 时，普通镜头会因倍率随物距变化而失效，需要双远心镜头 + 平行背光 + 亚像素边缘。
+    </div>
+  </div>
+</div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+function nearestFocal(f) {
+  const std = [6, 8, 12, 16, 25, 35, 50, 75, 100];
+  let best = std[0];
+  for (const s of std) if (Math.abs(s - f) < Math.abs(best - f)) best = s;
+  return best;
+}
+
+function item(k, v, why, big) {
+  return '<div class="item"><div class="k">' + k + '</div><div class="v' + (big ? ' big' : '') + '">' + v + '</div><div class="why">' + why + '</div></div>';
+}
+
+function calc() {
+  const fov = Number($('fov').value);
+  const prec = Number($('prec').value);
+  const n = Number($('n').value);
+  const wd = Number($('wd').value);
+  const fno = Number($('fno').value);
+  const [sw, sh, pxW, pxH] = $('sensor').value.split(',').map(Number);
+
+  const pitchNeeded = prec / n;
+  const needW = Math.ceil(fov / pitchNeeded);
+  const needH = Math.ceil(needW * 0.75);
+  const needMP = needW * needH / 1e6;
+
+  const m = sw / fov;
+  const f = wd * m / (1 + m);
+  const fStd = nearestFocal(f);
+
+  const pitch = sw / pxW;
+  const objectPitch = fov / pxW;
+  const actualPrec = objectPitch * n;
+  const dof = 2 * fno * (2 * pitch) * (1 + m) / (m * m);
+
+  const pass = actualPrec <= prec;
+  const mpPass = pxW * pxH >= needW * needH;
+
+  $('out').innerHTML = [
+    item('所需像素尺寸（物方像元）', (pitchNeeded * 1000).toFixed(1) + ' µm/px',
+      '= 精度 ÷ N。这是选相机最核心的数字：每像素在物体上代表多少微米。', true),
+    item('所需水平像素', needW + ' px（垂直约 ' + needH + ' px）',
+      '= 视野 ÷ 像素尺寸。覆盖整个 FOV 至少要这么多像素。'),
+    item('所需相机', (needMP < 0.1 ? needMP.toFixed(3) : needMP.toFixed(1)) + ' MP',
+      '水平 × 垂直（按 4:3 估算）。用来判断相机档位。'),
+    item('放大倍率 m', m.toFixed(3) + '×',
+      '= 传感器宽度 ÷ 视野。倍率越大，靶面可以越小，但镜头越难配。'),
+    item('推荐镜头焦距', f.toFixed(1) + ' mm → 选 ' + fStd + ' mm',
+      '= WD × m ÷ (1+m)。选最接近的标准焦距，再用工作距离微调。'),
+    item('景深（F' + fno + '）', dof.toFixed(2) + ' mm',
+      '物体前后可保持清晰的范围；要大于工件高度波动，否则会虚焦。'),
+    item('所选相机实际', '物方像元 ' + (objectPitch * 1000).toFixed(1) + ' µm，精度 ' + (actualPrec * 1000).toFixed(1) + ' µm',
+      '= 视野 ÷ 传感器水平像素 × N。只有 ≤ ' + (prec * 1000).toFixed(1) + ' µm 才算满足。')
+  ].join('');
+
+  const needClass = needMP <= 0.5 ? '30 万–50 万像素' : needMP <= 2 ? '200 万像素' : needMP <= 6 ? '500 万像素' : needMP <= 15 ? '1200 万像素' : needMP <= 30 ? '2000–3000 万像素' : '3000 万像素以上，或换方案';
+
+  $('verdict').innerHTML =
+    '<span class="tag ' + (pass && mpPass ? 'ok' : 'no') + '">' +
+    (pass && mpPass ? '当前传感器满足' : '当前传感器不满足') + '</span>' +
+    '　建议相机档位：<b style="color:#ffd166">' + needClass + '</b>';
+
+  const rec = ['<table><tr><th>需求</th><th>推荐配置</th></tr>'];
+  if (needMP <= 6) rec.push('<tr><td>≤500 万像素</td><td>2/3" 500 万黑白 + 25mm C 口低畸变镜头 + 环形/穹顶光</td></tr>');
+  else if (needMP <= 15) rec.push('<tr><td>1200 万像素</td><td>1" 1200 万黑白 + 25/35mm 工业镜头；测尺寸改用 0.2× 双远心 + 平行背光</td></tr>');
+  else if (needMP <= 30) rec.push('<tr><td>2000–3000 万像素</td><td>1.1" 2000 万或 3100 万黑白 + 35mm 低畸变；优先考虑双远心</td></tr>');
+  else rec.push('<tr><td>&gt;3000 万像素</td><td>方案偏极限：缩小视野、加亚像素/远心、多相机拼接，或改线扫相机</td></tr>');
+  if (prec < 0.02) rec.push('<tr><td>精度 &lt;20µm</td><td>必须双远心镜头 + 平行背光 + 亚像素边缘；普通镜头倍率随物距变化会吃掉精度</td></tr>');
+  rec.push('</table>');
+  $('recommend').innerHTML = rec.join('');
+}
+
+for (const id of ['fov','prec','n','wd','sensor','fno']) {
+  $(id).addEventListener('input', calc);
+  $(id).addEventListener('change', calc);
+}
+calc();
+</script>
+</body>
+</html>
